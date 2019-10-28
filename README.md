@@ -1,8 +1,5 @@
-# LAB - 111
-​
-## Authentication
-- 
-​
+# Authentication, LAB - 11
+
 ### Author: Julie Erlemeier
 ​
 ### Links and Resources
