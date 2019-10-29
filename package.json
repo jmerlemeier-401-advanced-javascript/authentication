@@ -1,0 +1,35 @@
+{
+  "name": "authentication",
+  "version": "1.0.0",
+  "description": "JS 401  Lab-11",
+  "main": "router.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "jest --verbose"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jmerlemeier-401-advanced-javascript/authentication.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/jmerlemeier-401-advanced-javascript/authentication/issues"
+  },
+  "homepage": "https://github.com/jmerlemeier-401-advanced-javascript/authentication#readme",
+  "dependencies": {
+    "bcrypt": "^3.0.6",
+    "cors": "^2.8.5",
+    "dotenv": "^8.2.0",
+    "express": "^4.17.1",
+    "jest": "^24.9.0",
+    "jsonwebtoken": "^8.5.1",
+    "mongod": "^2.0.0",
+    "mongodb-memory-server": "^6.0.1",
+    "mongoose": "^5.7.7",
+    "morgan": "^1.9.1",
+    "nodemon": "^1.19.4",
+    "supertest": "^4.0.2"
+  }
+}
