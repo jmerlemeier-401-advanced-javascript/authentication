@@ -25,16 +25,23 @@ users.pre('save', async function() {
   }
 });
 
+/**
+ * @returns {Boolean}
+ */
 users.statics.authenticateBasic = function(auth) {
   let query = {username:auth.username};
   return this.findOne(query)
-    .then(user => user && user.comparePassword(auth.password))
+    .then(user => user.comparePassword(auth.password))
     .catch(console.error);
 };
 
 // Compare a plain text password against the hashed one we have saved
+/**
+ * @returns {object} - {username, password, email}
+ */
 users.methods.comparePassword = function(password) {
-  return bcrypt.compare(password, this.password);
+  return bcrypt.compare(password, this.password)
+  .then(isValid => isValid ? this : null);
 };
 
 // Generate a JWT from the user id and a secret

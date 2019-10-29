@@ -20,8 +20,9 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 
-// Catchalls 
 app.use(authRouter);
+
+// Catchalls 
 app.use(notFound);
 app.use(errorHandler);
 
