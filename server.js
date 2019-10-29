@@ -1,125 +1,130 @@
 'use strict';
 
-//gatehrs dependecies in one place and expanding it
-
+require('dotenv').config();
 const express = require('express');
-const app = express();
-
-const mongoose = require('mongoose');
-const cors = require('cors');
 const morgan = require('morgan');
+const mongoose = require('mongoose');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 
-app.use(express.json());
-app.use(cors());
+mongoose.connect('mongodb://localhost:27017/class11', {
+  useCreateIndex: true,
+  useUnifiedTopology: true,
+  useNewUrlParser: true,
+})
+
+const app = express();
 app.use(morgan('dev'));
+app.use(express.json());
 
-app.use(express.urlencoded({extended:true}));
+//  Basic Authentication
+// Creating our auth token from credentials that the user sends us:
 
-// BASIC AUTHENTICATION
-//Creating a token via user credentials that they pass.
-
-//1. Define route for handling basic auth requests. use http methods for creating
-app.post('/signup', (req, res) => {
+// 1) Define route for handling basic auth requests
+app.post('/signup', (req, res, next) => {
   let user = new UserModel(req.body);
-
   user.save()
     .then(user => {
       req.token = user.generateToken();
       req.user = user;
-      res.set('token', req.token)//set response header
-      res.cookie('auth', req.token) //sort of like local storage
+      res.set('token', req.token);
+      res.cookie('auth', req.token);
       res.send(req.token);
     }).catch(next);
-})
-app.post('/signin', handleAuth, (req, res) => {//have specific headers we check
-  //use middleware
+});
+app.post('/signin', handleAuth, (req, res) => {
   res.cookie('auth', req.token);
   res.send(req.token);
-}) 
+});
 
-
-const users = mongoose.Schema({
+// 2) Create a user model
+//  a mongoose model with methods to handle user auth operations
+//  Hashing passwords
+//  comparing values to passwords
+//  Generate a token
+const users = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
-  password: { tyoe: String, required: true },
+  password: { type: String, required: true },
   email: { type: String, required: true },
-})
+});
 
-//2. Create a use model: a mongoose model with methods. Put methods directly onto a mongoose model without extending a class.
-//Want methods to handle user auth operations: 
-// - Hashing passwords (look at every character in a string and change around characters a certain number of times. bcrypt does this)
-// Only 1 way so passwords cannot be recovered.
-// - Comparing values to passwords
-// - Generate a token
+users.pre('save', async function () {
+  if (this.isModified('password')) {
+    this.password = await bcrypt.hash(this.password, 10);
+  }
+});
 
-//static does not use a new instance, it uses a constructor. Mongoose has static methods on it. 
-//@params {object} auth - {username, password}
-//have mongoose run a query on DB. 
-users.statics.authenticateBasic = (auth) => { 
-  let query = {username: auth.username};
+// @params {object} auth - {username, password}
+//  Looks for a user in our database by the given username
+//  returns the comparePassword boolean method in order to check if the given passeword matches
+users.statics.authenticateBasic = function (auth) {
+  let query = { username: auth.username };
   return this.findOne(query)
     .then(user => user.comparePassword(auth.password));
 }
 
-//@params {string} password - het bcrypt, does this value = your instance password when you encrypt it?
-users.methods.comparePassword = (password) => {
+// @ params {string} password - hey bcrypt, does this value equal your instance password when you encypt it?
+users.methods.comparePassword = function (password) {
   return bcrypt.compare(password, this.password)
-    .then(isValid => valid ? this : null);
- }
+    .then(isValid => isValid ? this : null);
+}
 
-//@params {void} - creates a token using user properties
-users.methods.generateToken = () => { 
+// @params {void} - creates a token
+users.methods.generateToken = function () {
   let userData = {
     id: this._id,
   }
-  //library used to create an incrypted token
+
+  // create an encrypted token
   return jwt.sign(userData, process.env.SECRET);
 }
-
 const UserModel = mongoose.model('users', users);
 
-//3. Creating auth middleware that will handle any request data that relates to auth . Checks for headers 
+// 3) Creating Auth middlware that will handle any request data that relates to auth
+//  Check for auth header
+//  decide whether our requests are authorized.
 function handleAuth(req, res, next) {
-  //parse reqs for header values
-  //req.headers.authorization.split(' ');
-//authstring (base64 encrypted)
-//authtype(basic)
+  // parse reqs for header values
+  //  req.headers.authorization.split(' ');
   const [authType, authString] = req.headers.authorization.split(' ');
 
-  switch(authType) {//basic, bearer, undefined
-    //decide wether we are using a basic or bearer
+  switch (authType.toLowerCase()) {
+    // decide whether we are using basic or bearer
     case 'basic':
       return _authBasic(authString);
     default:
-        return _authError();
+      return _authError();
   }
 
-  //encode the authString
-  function _authbasic(authString) {
-    let base64Butter = Buffer.from(authString, 'bas64');
-    let bufferstring = base64Buffer.toString(); jacob:mysuperpassword
+  // attach encoding the authstring
+  function _authBasic(authString) {
+    let base64Buffer = Buffer.from(authString, 'base64'); // <Buffer 01 03 >
+    let bufferString = base64Buffer.toString(); // jacob:mysuperpasswrd
     let [username, password] = bufferString.split(':');
     let auth = { username, password };
 
     return UserModel.authenticateBasic(auth)
       .then(user => _authenticate(user));
   }
-  //send errors if issues occur (401)
-  function _authenticate() {
-    if(user){
+
+  // send errors if issues occur
+  function _authenticate(user) {
+    if (user) {
       req.token = user.generateToken();
+      req.user = user;
+      next();
+    } else {
+      _authError();
     }
 
   }
 
   function _authError() {
-    //pass to some error handeling middleware
-    next('Auth Error');
+    next('Auth error');
   }
+}
 
-};
 
-//Starts the req/res cycle
 app.listen(3000, () => {
-  console.log('Server up')
+  console.log('app is listening on port 3000');
 });
